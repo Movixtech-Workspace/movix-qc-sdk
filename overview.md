@@ -15,7 +15,7 @@ token provider.
 - `password`: Login password (required for password auth)
 - `timeout`: Per-request timeout in seconds (default: 45)
 - `retries`: Retry count for transient errors (default: 10)
-- `user_agent`: Custom user agent string (default: `movix-qc-sdk/0.2.0`)
+- `user_agent`: Custom user agent string (default: `movix-qc-sdk/0.2.1`)
 - `occlusion_threshold_mm`: Default occlusion threshold in mm (default: 0.0)
 - `holes_threshold_area_mm`: Default holes threshold in mm² (default: 0.0)
 - `token_provider`: Custom token provider (advanced usage)
@@ -491,7 +491,7 @@ conditions and file sizes.
 Retry count for transient errors (network errors, 429, 5xx). Recommended range:
 5-10 for production integrations.
 
-`MOVIX_QC_USER_AGENT` (optional, default: `movix-qc-sdk/0.2.0`)
+`MOVIX_QC_USER_AGENT` (optional, default: `movix-qc-sdk/0.2.1`)
 Custom user agent for traceability. Recommended format:
 `Company/AppVersion (+contact)`.
 

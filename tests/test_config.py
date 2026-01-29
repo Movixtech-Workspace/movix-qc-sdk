@@ -35,7 +35,7 @@ def test_resolve_config_defaults(monkeypatch):
     assert config.password is None
     assert config.timeout_s == 45.0
     assert config.retries == 10
-    assert config.user_agent == "movix-qc-sdk/0.2.0"
+    assert config.user_agent == "movix-qc-sdk/0.2.1"
 
 
 def test_resolve_config_api_url_validation(monkeypatch):

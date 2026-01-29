@@ -149,7 +149,7 @@ All settings can be passed to `Client(...)` or set via environment variables.
 | `MOVIX_QC_PASSWORD` | `password` | Yes | None | Login password for password-based auth. | `s3cr3t` |
 | `MOVIX_QC_TIMEOUT` | `timeout` | No | `45` | Per-request timeout in seconds. Must be greater than zero. | `30` |
 | `MOVIX_QC_RETRIES` | `retries` | No | `10` | Number of retries for transient errors (network errors, 429, 5xx). Must be zero or greater. | `2` |
-| `MOVIX_QC_USER_AGENT` | `user_agent` | No | `movix-qc-sdk/0.2.0` | Custom user-agent string. Recommended format: `<Company>/<AppVersion> (+contact)` for traceability. | `Movix/1.2 (+example@movixtech.com)` |
+| `MOVIX_QC_USER_AGENT` | `user_agent` | No | `movix-qc-sdk/0.2.1` | Custom user-agent string. Recommended format: `<Company>/<AppVersion> (+contact)` for traceability. | `Movix/1.2 (+example@movixtech.com)` |
 | `MOVIX_QC_OCCLUSION_THRESHOLD_MM` | `occlusion_threshold_mm` | No | `0.0` | Occlusion threshold in millimeters. Set based on quality requirements. | `0.2` |
 | `MOVIX_QC_HOLES_THRESHOLD_AREA_MM` | `holes_threshold_area_mm` | No | `0.0` | Holes threshold in mm². Set based on quality requirements. | `10.0` |
 
