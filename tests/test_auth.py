@@ -48,12 +48,18 @@ def test_login_and_refresh(monkeypatch):
 
     assert login_route.called
     assert refresh_route.called
+
+    # Verify login request payload uses "email" field
+    login_request = login_route.calls[0].request
+    login_payload = json.loads(login_request.content)
+    assert login_payload == {"email": "user", "password": "pass"}
+
     provider.close()
 
 
 @respx.mock
 def test_login_failure_invalid_credentials():
-    respx.post("https://api.test/api/v1/auth/login/").mock(
+    login_route = respx.post("https://api.test/api/v1/auth/login/").mock(
         return_value=httpx.Response(401, json={"error": "bad creds"})
     )
 
@@ -68,6 +74,12 @@ def test_login_failure_invalid_credentials():
     with pytest.raises(AuthenticationError) as excinfo:
         provider.get_access_token()
     assert str(excinfo.value) == "Login failed."
+
+    # Verify login request payload uses "email" field even when login fails
+    login_request = login_route.calls[0].request
+    login_payload = json.loads(login_request.content)
+    assert login_payload == {"email": "user", "password": "pass"}
+
     provider.close()
 
 
@@ -112,6 +124,12 @@ def test_expired_token_without_refresh_logs_in(monkeypatch):
     token = provider.get_access_token()
     assert token == access_new
     assert login_route.called
+
+    # Verify login request payload uses "email" field
+    login_request = login_route.calls[0].request
+    login_payload = json.loads(login_request.content)
+    assert login_payload == {"email": "user", "password": "pass"}
+
     provider.close()
 
 

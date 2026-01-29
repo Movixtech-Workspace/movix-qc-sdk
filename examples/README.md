@@ -46,7 +46,7 @@ Edit `main.py` and replace the placeholder values:
 ```python
 client = Client(
     api_url="https://api-staging.movixtech.com",  # Your staging API URL
-    username="your-username",                      # Your username
+    username="your-email@example.com",             # Your email address
     password="your-password",                      # Your password
     timeout=30,
     user_agent="Movix/1.2 (+support@movixtech.com)",

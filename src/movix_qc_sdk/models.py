@@ -53,7 +53,7 @@ class Task(BaseModel):
 
     model_config = ConfigDict(extra="ignore")
 
-    task_id: int = Field(alias="id")
+    task_id: int
     title: str | None = None
     description: str | None = None
     service_name: str | None = None
@@ -66,7 +66,11 @@ class Task(BaseModel):
     @classmethod
     def from_api(cls, payload: dict[str, Any]) -> "Task":
         normalized = dict(payload)
+        # Normalize status
         normalized["status"] = normalize_task_status(payload.get("status"))
+        # Normalize task_id field (API uses both "id" and "task_id")
+        if "id" in payload and "task_id" not in payload:
+            normalized["task_id"] = payload["id"]
         return cls.model_validate(normalized)
 
 

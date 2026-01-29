@@ -28,7 +28,7 @@ def test_wait_polls_until_complete(monkeypatch):
         return_value=httpx.Response(200, json={"access": access, "refresh": "r1"})
     )
 
-    respx.get("https://api.test/api/v1/services/cases/case-1/tasks/9").mock(
+    respx.get("https://api.test/api/v1/services/cases/case-1/tasks/9/").mock(
         side_effect=[
             httpx.Response(200, json={"id": 9, "status": "Run"}),
             httpx.Response(200, json={"id": 9, "status": "Done"}),
@@ -81,7 +81,7 @@ def test_wait_times_out(monkeypatch):
         return_value=httpx.Response(200, json={"access": access, "refresh": "r1"})
     )
 
-    respx.get("https://api.test/api/v1/services/cases/case-1/tasks/9").mock(
+    respx.get("https://api.test/api/v1/services/cases/case-1/tasks/9/").mock(
         return_value=httpx.Response(200, json={"id": 9, "status": "Run"})
     )
 
@@ -118,7 +118,7 @@ def test_wait_returns_immediately_on_failed_status(monkeypatch):
         return_value=httpx.Response(200, json={"access": access, "refresh": "r1"})
     )
 
-    get_task_route = respx.get("https://api.test/api/v1/services/cases/case-1/tasks/9").mock(
+    get_task_route = respx.get("https://api.test/api/v1/services/cases/case-1/tasks/9/").mock(
         return_value=httpx.Response(200, json={"id": 9, "status": "Failed"})
     )
 

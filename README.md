@@ -145,7 +145,7 @@ All settings can be passed to `Client(...)` or set via environment variables.
 | Variable | Client arg | Required | Default | Description | Example |
 | --- | --- | --- | --- | --- | --- |
 | `MOVIX_QC_API_URL` | `api_url` | Yes | None | Base URL of the Movix QC API. Use `https://api-staging.movixtech.com` for staging or `https://api.movixtech.com` for production. The SDK strips a trailing slash. | `https://api-staging.movixtech.com` |
-| `MOVIX_QC_USERNAME` | `username` | Yes | None | Login username (typically an email) for password-based auth. | `user@example.com` |
+| `MOVIX_QC_USERNAME` | `username` | Yes | None | Email address for password-based authentication. | `user@example.com` |
 | `MOVIX_QC_PASSWORD` | `password` | Yes | None | Login password for password-based auth. | `s3cr3t` |
 | `MOVIX_QC_TIMEOUT` | `timeout` | No | `45` | Per-request timeout in seconds. Must be greater than zero. | `30` |
 | `MOVIX_QC_RETRIES` | `retries` | No | `10` | Number of retries for transient errors (network errors, 429, 5xx). Must be zero or greater. | `2` |
@@ -171,7 +171,7 @@ error handling, and result interpretation.
 
 ## Authentication
 
-The SDK logs in with username and password and refreshes tokens automatically.
+The SDK authenticates using email and password (passed as `username` and `password` parameters) and refreshes tokens automatically. The `username` parameter accepts your email address.
 
 ## Error handling
 

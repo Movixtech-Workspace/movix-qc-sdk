@@ -11,7 +11,7 @@ token provider.
 
 **Constructor Arguments** (all optional, fallback to environment variables):
 - `api_url`: Base API URL (required via arg or env)
-- `username`: Login username (required for password auth)
+- `username`: Email address for authentication (required for password auth)
 - `password`: Login password (required for password auth)
 - `timeout`: Per-request timeout in seconds (default: 45)
 - `retries`: Retry count for transient errors (default: 10)
@@ -356,21 +356,21 @@ Holes detection runs asynchronously. The result contains:
 
 ```python
 # Data Validation
-validation = await client.tasks.create_data_validation(case_id)
+validation = client.tasks.create_data_validation(case_id)
 if not validation.result.get("overall_valid"):
     print("Validation failed:", validation.result["validations"])
 
 # Occlusion Analysis
-occlusion = await client.tasks.create_occlusion(case_id, threshold_mm=0.2)
-result = await client.tasks.wait_for_completion(case_id, occlusion.task_id)
+occlusion = client.tasks.create_occlusion(case_id, threshold_mm=0.2)
+result = client.tasks.wait_for_completion(case_id, occlusion.task_id)
 if result.result["hyperocclusion"]:
     print(f"Hyperocclusion detected: {result.result['penetration']}mm penetration")
 else:
     print(f"No hyperocclusion. Min gap: {result.result['min_gap']}mm")
 
 # Holes Detection
-holes = await client.tasks.create_holes(case_id, threshold_area_mm=10.0)
-result = await client.tasks.wait_for_completion(case_id, holes.task_id)
+holes = client.tasks.create_holes(case_id, threshold_area_mm=10.0)
+result = client.tasks.wait_for_completion(case_id, holes.task_id)
 total_holes = result.result["upper_arch_holes_count"] + result.result["lower_arch_holes_count"]
 if total_holes > 0:
     print(f"Found {total_holes} holes (>10mm² each)")
@@ -477,8 +477,8 @@ Base API URL. Use one of:
 - Staging (integration/testing): `https://api-staging.movixtech.com`
 - Production: `https://api.movixtech.com`
 
-`MOVIX_QC_USERNAME` (required for password auth)  
-Login username, typically an email.
+`MOVIX_QC_USERNAME` (required for password auth)
+Email address for authentication.
 
 `MOVIX_QC_PASSWORD` (required for password auth)  
 Login password.

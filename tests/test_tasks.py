@@ -45,7 +45,7 @@ def test_tasks_list_and_get(monkeypatch):
         )
     )
 
-    respx.get("https://api.test/api/v1/services/cases/case-1/tasks/5").mock(
+    respx.get("https://api.test/api/v1/services/cases/case-1/tasks/5/").mock(
         return_value=httpx.Response(
             200,
             json={
@@ -86,7 +86,7 @@ def test_tasks_get_invalid_response(monkeypatch):
         return_value=httpx.Response(200, json={"access": access, "refresh": "r1"})
     )
 
-    respx.get("https://api.test/api/v1/services/cases/case-1/tasks/5").mock(
+    respx.get("https://api.test/api/v1/services/cases/case-1/tasks/5/").mock(
         return_value=httpx.Response(200, json=["bad"])
     )
 

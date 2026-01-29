@@ -127,7 +127,7 @@ class PasswordTokenProvider:
     def _login(self) -> TokenData:
         response = self._client.post(
             "/api/v1/auth/login/",
-            json={"username": self._username, "password": self._password},
+            json={"email": self._username, "password": self._password},
         )
         if response.status_code != 200:
             raise AuthenticationError("Login failed.")

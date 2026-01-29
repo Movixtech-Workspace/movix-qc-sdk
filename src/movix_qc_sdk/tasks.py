@@ -24,7 +24,7 @@ class TasksClient:
             raise ValidationError("case_id is required to fetch a task.")
         data = self._transport.request_json(
             "GET",
-            f"/api/v1/services/cases/{case_id}/tasks/{task_id}",
+            f"/api/v1/services/cases/{case_id}/tasks/{task_id}/",
         )
         if not isinstance(data, dict):
             raise ValidationError("Unexpected response when fetching task.")
@@ -88,7 +88,7 @@ class TasksClient:
         data = self._transport.request_json(
             "POST",
             f"/api/v1/services/cases/{case_id}/tasks/",
-            json={"service": "Data Validation"}
+            json_body={"service": "Data Validation"}
         )
         if not isinstance(data, dict):
             raise ValidationError("Unexpected response when creating data validation task.")
@@ -125,7 +125,7 @@ class TasksClient:
         data = self._transport.request_json(
             "POST",
             f"/api/v1/services/cases/{case_id}/tasks/hyperocclusion",
-            json=payload
+            json_body=payload
         )
         if not isinstance(data, dict):
             raise ValidationError("Unexpected response when creating occlusion task.")
@@ -162,7 +162,7 @@ class TasksClient:
         data = self._transport.request_json(
             "POST",
             f"/api/v1/services/cases/{case_id}/tasks/holes",
-            json=payload
+            json_body=payload
         )
         if not isinstance(data, dict):
             raise ValidationError("Unexpected response when creating holes task.")

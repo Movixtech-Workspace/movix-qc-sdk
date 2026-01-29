@@ -367,8 +367,11 @@ def _validate_presigned_url(url: str) -> None:
     parsed = urlparse(url)
     domain = parsed.netloc.lower()
 
+    # Check if domain matches allowed suffixes (both base domain and subdomains)
+    # E.g., "storage.googleapis.com" or "bucket.storage.googleapis.com"
     allowed = any(
-        domain.endswith(suffix) for suffix in ALLOWED_STORAGE_DOMAIN_SUFFIXES
+        domain == suffix.lstrip(".") or domain.endswith(suffix)
+        for suffix in ALLOWED_STORAGE_DOMAIN_SUFFIXES
     )
 
     if not allowed:

@@ -683,6 +683,53 @@ def test_upload_presigned_url_domain_validation_rejects_invalid(
         client.close()
 
 
+@respx.mock
+def test_upload_presigned_url_domain_validation_allows_base_domain(
+    monkeypatch, tmp_path
+):
+    _require_validation_deps()
+    monkeypatch.setattr("movix_qc_sdk.transport.time.sleep", lambda *_: None)
+    now = 1_700_000_000
+    access = _make_jwt(now + 3600)
+    monkeypatch.setattr("movix_qc_sdk.auth.time.time", lambda: now)
+
+    respx.post("https://api.test/api/v1/auth/login/").mock(
+        return_value=httpx.Response(200, json={"access": access, "refresh": "r1"})
+    )
+
+    # Presigned URLs with base domain (without subdomain)
+    upper_url = "https://storage.googleapis.com/bucket/upper.stl?signature=abc"
+    lower_url = "https://storage.googleapis.com/bucket/lower.stl?signature=def"
+
+    respx.post("https://api.test/api/v1/base/cases/case-1/presigned-links/").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "upper_jaw": {"url": upper_url, "file_id": "u1"},
+                "lower_jaw": {"url": lower_url, "file_id": "l1"},
+            },
+        )
+    )
+
+    # Mock successful uploads
+    respx.put(upper_url).mock(return_value=httpx.Response(200))
+    respx.put(lower_url).mock(return_value=httpx.Response(200))
+
+    upper_path = tmp_path / "upper.stl"
+    lower_path = tmp_path / "lower.stl"
+    upper_path.write_bytes(_binary_stl_bytes(0.0))
+    lower_path.write_bytes(_binary_stl_bytes(1.0))
+
+    client = Client(api_url="https://api.test", username="user", password="pass")
+    try:
+        # Should succeed - base domain is allowed
+        result = client.cases.upload_files("case-1", paths=[upper_path, lower_path])
+        assert result.upper_file_id == "u1"
+        assert result.lower_file_id == "l1"
+    finally:
+        client.close()
+
+
 def test_filename_sanitization_from_url():
     from pathlib import Path
     from urllib.parse import urlparse
