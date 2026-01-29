@@ -22,6 +22,8 @@ class Client:
         timeout: float | None = None,
         retries: int | None = None,
         user_agent: str | None = None,
+        occlusion_threshold_mm: float | None = None,
+        holes_threshold_area_mm: float | None = None,
         token_provider: TokenProvider | None = None,
     ) -> None:
         config = resolve_config(
@@ -31,6 +33,8 @@ class Client:
             timeout,
             retries,
             user_agent,
+            occlusion_threshold_mm,
+            holes_threshold_area_mm,
         )
         self._config = config
 
@@ -54,7 +58,7 @@ class Client:
             token_provider=token_provider,
         )
         self.cases = CasesClient(self._transport)
-        self.tasks = TasksClient(self._transport)
+        self.tasks = TasksClient(self._transport, config)
 
     def __enter__(self) -> "Client":
         return self

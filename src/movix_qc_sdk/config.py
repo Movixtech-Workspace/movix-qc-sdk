@@ -15,6 +15,8 @@ ENV_PASSWORD = "MOVIX_QC_PASSWORD"
 ENV_TIMEOUT = "MOVIX_QC_TIMEOUT"
 ENV_RETRIES = "MOVIX_QC_RETRIES"
 ENV_USER_AGENT = "MOVIX_QC_USER_AGENT"
+ENV_OCCLUSION_THRESHOLD_MM = "MOVIX_QC_OCCLUSION_THRESHOLD_MM"
+ENV_HOLES_THRESHOLD_AREA_MM = "MOVIX_QC_HOLES_THRESHOLD_AREA_MM"
 
 
 @dataclass(frozen=True)
@@ -27,6 +29,8 @@ class Config:
     timeout_s: float
     retries: int
     user_agent: str
+    occlusion_threshold_mm: float
+    holes_threshold_area_mm: float
 
 
 def _parse_timeout(value: str | None, default: float) -> float:
@@ -53,6 +57,18 @@ def _parse_retries(value: str | None, default: int) -> int:
     return retries
 
 
+def _parse_threshold(value: str | None, default: float, name: str) -> float:
+    if value is None:
+        return default
+    try:
+        threshold = float(value)
+    except (TypeError, ValueError):
+        raise ValidationError(f"{name} must be a number.")
+    if threshold < 0:
+        raise ValidationError(f"{name} must be zero or greater.")
+    return threshold
+
+
 def _validate_api_url(value: str | None) -> str:
     if not value:
         raise ValidationError("api_url is required.")
@@ -69,6 +85,8 @@ def resolve_config(
     timeout_s: float | None,
     retries: int | None,
     user_agent: str | None,
+    occlusion_threshold_mm: float | None,
+    holes_threshold_area_mm: float | None,
 ) -> Config:
     """Resolve configuration from arguments and environment variables."""
 
@@ -87,7 +105,19 @@ def resolve_config(
         default=10,
     )
 
-    user_agent_value = user_agent or os.getenv(ENV_USER_AGENT) or "movix-qc-sdk/0.1.0"
+    user_agent_value = user_agent or os.getenv(ENV_USER_AGENT) or "movix-qc-sdk/0.2.0"
+
+    occlusion_threshold_value = _parse_threshold(
+        str(occlusion_threshold_mm) if occlusion_threshold_mm is not None else os.getenv(ENV_OCCLUSION_THRESHOLD_MM),
+        default=0.0,
+        name="Occlusion threshold"
+    )
+
+    holes_threshold_value = _parse_threshold(
+        str(holes_threshold_area_mm) if holes_threshold_area_mm is not None else os.getenv(ENV_HOLES_THRESHOLD_AREA_MM),
+        default=0.0,
+        name="Holes threshold"
+    )
 
     return Config(
         api_url=api_url_value,
@@ -96,4 +126,6 @@ def resolve_config(
         timeout_s=timeout_value,
         retries=retries_value,
         user_agent=user_agent_value,
+        occlusion_threshold_mm=occlusion_threshold_value,
+        holes_threshold_area_mm=holes_threshold_value,
     )

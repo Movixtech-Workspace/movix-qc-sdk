@@ -149,7 +149,25 @@ All settings can be passed to `Client(...)` or set via environment variables.
 | `MOVIX_QC_PASSWORD` | `password` | Yes | None | Login password for password-based auth. | `s3cr3t` |
 | `MOVIX_QC_TIMEOUT` | `timeout` | No | `45` | Per-request timeout in seconds. Must be greater than zero. | `30` |
 | `MOVIX_QC_RETRIES` | `retries` | No | `10` | Number of retries for transient errors (network errors, 429, 5xx). Must be zero or greater. | `2` |
-| `MOVIX_QC_USER_AGENT` | `user_agent` | No | `movix-qc-sdk/0.1.0` | Custom user-agent string. Recommended format: `<Company>/<AppVersion> (+contact)` for traceability. | `Movix/1.2 (+example@movixtech.com)` |
+| `MOVIX_QC_USER_AGENT` | `user_agent` | No | `movix-qc-sdk/0.2.0` | Custom user-agent string. Recommended format: `<Company>/<AppVersion> (+contact)` for traceability. | `Movix/1.2 (+example@movixtech.com)` |
+| `MOVIX_QC_OCCLUSION_THRESHOLD_MM` | `occlusion_threshold_mm` | No | `0.0` | Occlusion threshold in millimeters. Set based on quality requirements. | `0.2` |
+| `MOVIX_QC_HOLES_THRESHOLD_AREA_MM` | `holes_threshold_area_mm` | No | `0.0` | Holes threshold in mm². Set based on quality requirements. | `10.0` |
+
+## Complete Examples
+
+See the `examples/` directory for a full workflow demonstration:
+
+- **[examples/main.py](examples/main.py)** - Complete QC workflow showing:
+  - Case creation with STL file upload
+  - Data validation (synchronous)
+  - Parallel occlusion and holes detection (asynchronous)
+  - Summary and viewer link generation
+  - Proper error handling and result interpretation
+
+- **[examples/README.md](examples/README.md)** - Setup instructions and configuration guide
+
+The example demonstrates enterprise-ready code with proper threshold configuration,
+error handling, and result interpretation.
 
 ## Authentication
 

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import time
 
+from movix_qc_sdk.config import Config
 from movix_qc_sdk.errors import MovixQCError, ValidationError
 from movix_qc_sdk.models import Task, TaskStatus
 from movix_qc_sdk.transport import Transport
@@ -12,8 +13,9 @@ from movix_qc_sdk.transport import Transport
 class TasksClient:
     """Client for task-related operations."""
 
-    def __init__(self, transport: Transport) -> None:
+    def __init__(self, transport: Transport, config: Config) -> None:
         self._transport = transport
+        self._config = config
 
     def get(self, task_id: int, case_id: str | None = None) -> Task:
         """Get a task by ID."""
@@ -79,6 +81,103 @@ class TasksClient:
             iteration += 1
 
         raise MovixQCError("Timed out waiting for task completion.")
+
+    def create_data_validation(self, case_id: str) -> Task:
+        """Create a data validation task (synchronous)."""
+
+        data = self._transport.request_json(
+            "POST",
+            f"/api/v1/services/cases/{case_id}/tasks/",
+            json={"service": "Data Validation"}
+        )
+        if not isinstance(data, dict):
+            raise ValidationError("Unexpected response when creating data validation task.")
+        return Task.from_api(data)
+
+    def create_occlusion(
+        self,
+        case_id: str,
+        *,
+        threshold_mm: float | None = None,
+        visualization: bool = True,
+        generate_drc: bool = False,
+    ) -> Task:
+        """Create an occlusal evaluation task.
+
+        Args:
+            case_id: The case ID
+            threshold_mm: Occlusion threshold in mm (defaults to config value: 0.0mm)
+            visualization: Generate visualization assets (default: True)
+            generate_drc: Generate DRC files alongside meshes (default: False)
+
+        Returns:
+            Task object with task_id and status
+        """
+
+        threshold_value = threshold_mm if threshold_mm is not None else self._config.occlusion_threshold_mm
+
+        payload = {
+            "threshold_mm": threshold_value,
+            "visualization": visualization,
+            "generate_drc": generate_drc,
+        }
+
+        data = self._transport.request_json(
+            "POST",
+            f"/api/v1/services/cases/{case_id}/tasks/hyperocclusion",
+            json=payload
+        )
+        if not isinstance(data, dict):
+            raise ValidationError("Unexpected response when creating occlusion task.")
+        return Task.from_api(data)
+
+    def create_holes(
+        self,
+        case_id: str,
+        *,
+        threshold_area_mm: float | None = None,
+        visualization: bool = True,
+        generate_drc: bool = False,
+    ) -> Task:
+        """Create a holes detection task.
+
+        Args:
+            case_id: The case ID
+            threshold_area_mm: Minimum hole area in mm² (defaults to config value: 0.0mm²)
+            visualization: Generate visualization assets (default: True)
+            generate_drc: Generate DRC files alongside meshes (default: False)
+
+        Returns:
+            Task object with task_id and status
+        """
+
+        threshold_value = threshold_area_mm if threshold_area_mm is not None else self._config.holes_threshold_area_mm
+
+        payload = {
+            "threshold_area_mm": threshold_value,
+            "visualization": visualization,
+            "generate_drc": generate_drc,
+        }
+
+        data = self._transport.request_json(
+            "POST",
+            f"/api/v1/services/cases/{case_id}/tasks/holes",
+            json=payload
+        )
+        if not isinstance(data, dict):
+            raise ValidationError("Unexpected response when creating holes task.")
+        return Task.from_api(data)
+
+    def wait_for_completion(
+        self,
+        case_id: str,
+        task_id: int,
+        timeout_s: float = 600.0,
+        poll_interval_s: float = 5.0,
+    ) -> Task:
+        """Wait for a task to complete (alias for wait method)."""
+
+        return self.wait(task_id=task_id, case_id=case_id, timeout_s=timeout_s, poll_interval_s=poll_interval_s)
 
 
 def _normalize_status_filter(status: TaskStatus | str | None) -> TaskStatus | None:
