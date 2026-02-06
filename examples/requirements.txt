@@ -1,2 +1,2 @@
 # Movix QC SDK - install from PyPI
-movix-qc-sdk>=0.2.1
+movix-qc-sdk>=0.2.2

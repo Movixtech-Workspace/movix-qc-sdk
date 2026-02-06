@@ -136,6 +136,7 @@ class TasksClient:
         case_id: str,
         *,
         threshold_area_mm: float | None = None,
+        crown_dilation_mm: float | None = None,
         visualization: bool = True,
         generate_drc: bool = False,
     ) -> Task:
@@ -144,6 +145,7 @@ class TasksClient:
         Args:
             case_id: The case ID
             threshold_area_mm: Minimum hole area in mm² (defaults to config value: 0.0mm²)
+            crown_dilation_mm: Crown dilation distance in mm for hole detection (optional)
             visualization: Generate visualization assets (default: True)
             generate_drc: Generate DRC files alongside meshes (default: False)
 
@@ -151,13 +153,19 @@ class TasksClient:
             Task object with task_id and status
         """
 
+        if crown_dilation_mm is not None and crown_dilation_mm < 0:
+            raise ValidationError("crown_dilation_mm must be zero or greater.")
+
         threshold_value = threshold_area_mm if threshold_area_mm is not None else self._config.holes_threshold_area_mm
 
-        payload = {
+        payload: dict[str, object] = {
             "threshold_area_mm": threshold_value,
             "visualization": visualization,
             "generate_drc": generate_drc,
         }
+
+        if crown_dilation_mm is not None:
+            payload["crown_dilation_mm"] = crown_dilation_mm
 
         data = self._transport.request_json(
             "POST",

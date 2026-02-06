@@ -64,7 +64,7 @@ You can configure quality check thresholds in three ways (in order of precedence
 1. **Method parameters** (highest priority - overrides client and environment settings):
    ```python
    client.tasks.create_occlusion(case_id, threshold_mm=0.3)
-   client.tasks.create_holes(case_id, threshold_area_mm=15.0)
+   client.tasks.create_holes(case_id, threshold_area_mm=15.0, crown_dilation_mm=0.0)
    ```
 
 2. **Client initialization** (overrides environment variables):
@@ -78,9 +78,10 @@ You can configure quality check thresholds in three ways (in order of precedence
    export MOVIX_QC_HOLES_THRESHOLD_AREA_MM=10.0
    ```
 
-**Threshold Meanings**:
+**Parameter Meanings**:
 - `occlusion_threshold_mm`: Minimum penetration depth in millimeters to flag as hyperocclusion. Set to `0.0` to detect all occlusions.
 - `holes_threshold_area_mm`: Minimum hole area in mm² to include in results. Set to `0.0` to detect all holes regardless of size.
+- `crown_dilation_mm`: Crown dilation distance in mm for hole detection (optional, method parameter only).
 
 ## Running the Example
 

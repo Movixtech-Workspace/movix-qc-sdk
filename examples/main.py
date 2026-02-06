@@ -48,7 +48,7 @@ def main():
         try:
             # Step 1: Create case and upload files
             print("📦 Creating case...")
-            case = client.cases.create(note="SDK v0.2.0 example workflow")
+            case = client.cases.create(note="SDK v0.2.2 example workflow")
             case_id = case.case_id
             print(f"✅ Case created: {case_id}")
 
