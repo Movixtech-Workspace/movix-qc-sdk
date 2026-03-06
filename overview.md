@@ -15,8 +15,9 @@ token provider.
 - `password`: Login password (required for password auth)
 - `timeout`: Per-request timeout in seconds (default: 45)
 - `retries`: Retry count for transient errors (default: 10)
-- `user_agent`: Custom user agent string (default: `movix-qc-sdk/0.2.1`)
+- `user_agent`: Custom user agent string (default: `movix-qc-sdk/0.3.0`)
 - `occlusion_threshold_mm`: Default occlusion threshold in mm (default: 0.0)
+- `occlusion_threshold_gap_mm`: Default gap threshold in mm (default: 0.0)
 - `holes_threshold_area_mm`: Default holes threshold in mm² (default: 0.0)
 - `token_provider`: Custom token provider (advanced usage)
 
@@ -158,7 +159,7 @@ Arguments:
 
 Returns a `Task` object with `task_id`, `status`, and `result` fields.
 
-`create_occlusion(case_id, threshold_mm=None, visualization=True, generate_drc=False)`
+`create_occlusion(case_id, threshold_mm=None, threshold_gap_mm=None, exclude_crowns=None, visualization=True, generate_drc=False)`
 Create an occlusal evaluation task (asynchronous).
 
 Arguments:
@@ -166,6 +167,10 @@ Arguments:
 - `threshold_mm`: occlusion threshold in millimeters (defaults to config value: 0.0mm).
   Set higher to ignore minor occlusions. Method parameter overrides Client initialization
   value, which overrides environment variable.
+- `threshold_gap_mm`: gap threshold in millimeters (defaults to config value: 0.0mm).
+  Used for open-contact detection. Same precedence rules as `threshold_mm`.
+- `exclude_crowns`: optional list of FDI tooth numbers (integers) to exclude from
+  analysis. For example, `[18, 28, 38, 48]` excludes wisdom teeth.
 - `visualization`: generate visualization assets (default: True). Set to False to skip
   heatmap images and contact meshes.
 - `generate_drc`: generate DRC files alongside meshes (default: False). Only applies
@@ -173,7 +178,7 @@ Arguments:
 
 Returns a `Task` object. Use `wait_for_completion()` to poll until done.
 
-`create_holes(case_id, threshold_area_mm=None, visualization=True, generate_drc=False)`
+`create_holes(case_id, threshold_area_mm=None, crown_dilation_mm=None, exclude_crowns=None, visualization=True, generate_drc=False)`
 Create a holes detection task (asynchronous).
 
 Arguments:
@@ -181,10 +186,25 @@ Arguments:
 - `threshold_area_mm`: minimum hole area in mm² (defaults to config value: 0.0mm²).
   Set higher to filter out smaller holes. Method parameter overrides Client initialization
   value, which overrides environment variable.
+- `crown_dilation_mm`: crown dilation distance in mm for hole detection (optional).
+  Must be zero or greater when specified.
+- `exclude_crowns`: optional list of FDI tooth numbers (integers) to exclude from
+  analysis. For example, `[18, 28, 38, 48]` excludes wisdom teeth.
 - `visualization`: generate visualization assets (default: True). Set to False to skip
   annotated screenshots and colored meshes.
 - `generate_drc`: generate DRC files alongside meshes (default: False). Only applies
   when `visualization=True`.
+
+Returns a `Task` object. Use `wait_for_completion()` to poll until done.
+
+`create_scan_integrity(case_id, exclude_crowns=None)`
+Create a scan integrity analysis task (asynchronous). Detects defects such as
+overfill, unrecorded areas, and crown anomalies.
+
+Arguments:
+- `case_id`: required case UUID as a string.
+- `exclude_crowns`: optional list of FDI tooth numbers (integers) to exclude from
+  analysis. For example, `[18, 28, 38, 48]` excludes wisdom teeth.
 
 Returns a `Task` object. Use `wait_for_completion()` to poll until done.
 
@@ -295,7 +315,9 @@ Occlusal evaluation runs asynchronously. The result contains:
     "overlap": float,           # millimeters
     "penetration": float,       # millimeters
     "hyperocclusion": bool,
-    "threshold_mm": float       # threshold used
+    "threshold_mm": float,      # penetration threshold used
+    "threshold_gap_mm": float,  # gap threshold used
+    "open_contacts": bool       # True when min_gap > threshold_gap_mm
 }
 ```
 
@@ -304,7 +326,9 @@ Occlusal evaluation runs asynchronously. The result contains:
 - `penetration`: Maximum penetration depth in mm (when arches overlap)
 - `min_gap`: Minimum distance between arches in mm (when no overlap)
 - `overlap`: Surface area of overlap in mm²
-- `threshold_mm`: The threshold value that was used (echoed from request)
+- `threshold_mm`: The penetration threshold value that was used (echoed from request)
+- `threshold_gap_mm`: The gap threshold value that was used (echoed from request)
+- `open_contacts`: Boolean flag - `True` when `min_gap > threshold_gap_mm`
 
 **Understanding the Results**:
 
@@ -352,6 +376,36 @@ Holes detection runs asynchronously. The result contains:
 - `5-10mm²`: Filter out very small holes (noise reduction)
 - `20mm²+`: Only significant holes (less sensitive)
 
+### Scan Integrity Results
+
+Scan integrity runs asynchronously. The result contains:
+
+```python
+{
+    "status": "success",
+    "defects": {
+        "upper": {
+            "overfill": ["11", "12"],
+            "unrecorded_area": ["21", "22"],
+            "crown_anomaly": ["31"]
+        },
+        "lower": {
+            "overfill": [],
+            "unrecorded_area": [],
+            "crown_anomaly": []
+        }
+    }
+}
+```
+
+**Interpretation**:
+- `defects`: Contains detected defects grouped by arch (`upper`/`lower`)
+- Each defect type maps to a list of affected FDI tooth numbers (as strings)
+- `overfill`: Excess material detected on the tooth surface
+- `unrecorded_area`: Missing scan data in the tooth region
+- `crown_anomaly`: Structural anomalies detected on the crown
+- Empty lists indicate no defects of that type were found
+
 **Example Workflows**:
 
 ```python
@@ -360,20 +414,41 @@ validation = client.tasks.create_data_validation(case_id)
 if not validation.result.get("overall_valid"):
     print("Validation failed:", validation.result["validations"])
 
-# Occlusion Analysis
-occlusion = client.tasks.create_occlusion(case_id, threshold_mm=0.2)
+# Occlusion Analysis (with gap threshold and tooth exclusion)
+occlusion = client.tasks.create_occlusion(
+    case_id,
+    threshold_mm=0.2,
+    threshold_gap_mm=0.15,
+    exclude_crowns=[18, 28, 38, 48],
+)
 result = client.tasks.wait_for_completion(case_id, occlusion.task_id)
 if result.result["hyperocclusion"]:
     print(f"Hyperocclusion detected: {result.result['penetration']}mm penetration")
 else:
     print(f"No hyperocclusion. Min gap: {result.result['min_gap']}mm")
 
-# Holes Detection
-holes = client.tasks.create_holes(case_id, threshold_area_mm=10.0)
+# Holes Detection (with tooth exclusion)
+holes = client.tasks.create_holes(
+    case_id,
+    threshold_area_mm=10.0,
+    exclude_crowns=[18, 28, 38, 48],
+)
 result = client.tasks.wait_for_completion(case_id, holes.task_id)
 total_holes = result.result["upper_arch_holes_count"] + result.result["lower_arch_holes_count"]
 if total_holes > 0:
     print(f"Found {total_holes} holes (>10mm² each)")
+
+# Scan Integrity
+integrity = client.tasks.create_scan_integrity(
+    case_id,
+    exclude_crowns=[18, 28, 38, 48],
+)
+result = client.tasks.wait_for_completion(case_id, integrity.task_id)
+defects = result.result.get("defects", {})
+for arch in ("upper", "lower"):
+    for defect_type, teeth in defects.get(arch, {}).items():
+        if teeth:
+            print(f"{arch} {defect_type}: teeth {teeth}")
 ```
 
 ## Limits
@@ -440,6 +515,8 @@ if total_holes > 0:
 - Unexpected response when creating data validation task.
 - Unexpected response when creating occlusion task.
 - Unexpected response when creating holes task.
+- Unexpected response when creating scan integrity task.
+- exclude_crowns must be a list of integers.
 
 ### AuthenticationError
 
@@ -491,7 +568,7 @@ conditions and file sizes.
 Retry count for transient errors (network errors, 429, 5xx). Recommended range:
 5-10 for production integrations.
 
-`MOVIX_QC_USER_AGENT` (optional, default: `movix-qc-sdk/0.2.1`)
+`MOVIX_QC_USER_AGENT` (optional, default: `movix-qc-sdk/0.3.0`)
 Custom user agent for traceability. Recommended format:
 `Company/AppVersion (+contact)`.
 
@@ -499,6 +576,11 @@ Custom user agent for traceability. Recommended format:
 Occlusion threshold in millimeters. The `hyperocclusion` boolean flag in task results
 becomes `true` when measured penetration exceeds this threshold. Set to `0.0` to detect
 all occlusions. Can be overridden via Client initialization or method parameters.
+
+`MOVIX_QC_OCCLUSION_THRESHOLD_GAP_MM` (optional, default: 0.0)
+Gap threshold in millimeters for open-contact detection. The `open_contacts` boolean
+flag in task results becomes `true` when the minimum gap exceeds this threshold. Can be
+overridden via Client initialization or method parameters.
 
 `MOVIX_QC_HOLES_THRESHOLD_AREA_MM` (optional, default: 0.0)
 Holes threshold in mm². Filters visualization and counts to only include holes with

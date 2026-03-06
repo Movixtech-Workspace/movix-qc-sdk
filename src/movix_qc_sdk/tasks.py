@@ -99,28 +99,40 @@ class TasksClient:
         case_id: str,
         *,
         threshold_mm: float | None = None,
+        threshold_gap_mm: float | None = None,
+        exclude_crowns: list[int] | None = None,
         visualization: bool = True,
         generate_drc: bool = False,
     ) -> Task:
         """Create an occlusal evaluation task.
 
         Args:
-            case_id: The case ID
-            threshold_mm: Occlusion threshold in mm (defaults to config value: 0.0mm)
-            visualization: Generate visualization assets (default: True)
-            generate_drc: Generate DRC files alongside meshes (default: False)
+            case_id: The case ID.
+            threshold_mm: Occlusion threshold in mm (defaults to config value: 0.0mm).
+            threshold_gap_mm: Gap threshold in mm (defaults to config value: 0.0mm).
+            exclude_crowns: FDI tooth numbers to exclude from analysis (optional).
+            visualization: Generate visualization assets (default: True).
+            generate_drc: Generate DRC files alongside meshes (default: False).
 
         Returns:
-            Task object with task_id and status
+            Task object with task_id and status.
         """
 
-        threshold_value = threshold_mm if threshold_mm is not None else self._config.occlusion_threshold_mm
+        if exclude_crowns is not None:
+            _validate_exclude_crowns(exclude_crowns)
 
-        payload = {
+        threshold_value = threshold_mm if threshold_mm is not None else self._config.occlusion_threshold_mm
+        threshold_gap_value = threshold_gap_mm if threshold_gap_mm is not None else self._config.occlusion_threshold_gap_mm
+
+        payload: dict[str, object] = {
             "threshold_mm": threshold_value,
+            "threshold_gap_mm": threshold_gap_value,
             "visualization": visualization,
             "generate_drc": generate_drc,
         }
+
+        if exclude_crowns is not None:
+            payload["exclude_crowns"] = exclude_crowns
 
         data = self._transport.request_json(
             "POST",
@@ -137,24 +149,28 @@ class TasksClient:
         *,
         threshold_area_mm: float | None = None,
         crown_dilation_mm: float | None = None,
+        exclude_crowns: list[int] | None = None,
         visualization: bool = True,
         generate_drc: bool = False,
     ) -> Task:
         """Create a holes detection task.
 
         Args:
-            case_id: The case ID
-            threshold_area_mm: Minimum hole area in mm² (defaults to config value: 0.0mm²)
-            crown_dilation_mm: Crown dilation distance in mm for hole detection (optional)
-            visualization: Generate visualization assets (default: True)
-            generate_drc: Generate DRC files alongside meshes (default: False)
+            case_id: The case ID.
+            threshold_area_mm: Minimum hole area in mm² (defaults to config value: 0.0mm²).
+            crown_dilation_mm: Crown dilation distance in mm for hole detection (optional).
+            exclude_crowns: FDI tooth numbers to exclude from analysis (optional).
+            visualization: Generate visualization assets (default: True).
+            generate_drc: Generate DRC files alongside meshes (default: False).
 
         Returns:
-            Task object with task_id and status
+            Task object with task_id and status.
         """
 
         if crown_dilation_mm is not None and crown_dilation_mm < 0:
             raise ValidationError("crown_dilation_mm must be zero or greater.")
+        if exclude_crowns is not None:
+            _validate_exclude_crowns(exclude_crowns)
 
         threshold_value = threshold_area_mm if threshold_area_mm is not None else self._config.holes_threshold_area_mm
 
@@ -166,6 +182,8 @@ class TasksClient:
 
         if crown_dilation_mm is not None:
             payload["crown_dilation_mm"] = crown_dilation_mm
+        if exclude_crowns is not None:
+            payload["exclude_crowns"] = exclude_crowns
 
         data = self._transport.request_json(
             "POST",
@@ -174,6 +192,39 @@ class TasksClient:
         )
         if not isinstance(data, dict):
             raise ValidationError("Unexpected response when creating holes task.")
+        return Task.from_api(data)
+
+    def create_scan_integrity(
+        self,
+        case_id: str,
+        *,
+        exclude_crowns: list[int] | None = None,
+    ) -> Task:
+        """Create a scan integrity analysis task.
+
+        Args:
+            case_id: The case ID.
+            exclude_crowns: FDI tooth numbers to exclude from analysis (optional).
+
+        Returns:
+            Task object with task_id and status.
+        """
+
+        if exclude_crowns is not None:
+            _validate_exclude_crowns(exclude_crowns)
+
+        payload: dict[str, object] = {}
+
+        if exclude_crowns is not None:
+            payload["exclude_crowns"] = exclude_crowns
+
+        data = self._transport.request_json(
+            "POST",
+            f"/api/v1/services/cases/{case_id}/tasks/defects",
+            json_body=payload
+        )
+        if not isinstance(data, dict):
+            raise ValidationError("Unexpected response when creating scan integrity task.")
         return Task.from_api(data)
 
     def wait_for_completion(
@@ -186,6 +237,16 @@ class TasksClient:
         """Wait for a task to complete (alias for wait method)."""
 
         return self.wait(task_id=task_id, case_id=case_id, timeout_s=timeout_s, poll_interval_s=poll_interval_s)
+
+
+def _validate_exclude_crowns(exclude_crowns: list[int]) -> None:
+    """Validate the exclude_crowns parameter."""
+
+    if not isinstance(exclude_crowns, list):
+        raise ValidationError("exclude_crowns must be a list of integers.")
+    for item in exclude_crowns:
+        if not isinstance(item, int) or isinstance(item, bool):
+            raise ValidationError("exclude_crowns must be a list of integers.")
 
 
 def _normalize_status_filter(status: TaskStatus | str | None) -> TaskStatus | None:

@@ -16,6 +16,7 @@ ENV_TIMEOUT = "MOVIX_QC_TIMEOUT"
 ENV_RETRIES = "MOVIX_QC_RETRIES"
 ENV_USER_AGENT = "MOVIX_QC_USER_AGENT"
 ENV_OCCLUSION_THRESHOLD_MM = "MOVIX_QC_OCCLUSION_THRESHOLD_MM"
+ENV_OCCLUSION_THRESHOLD_GAP_MM = "MOVIX_QC_OCCLUSION_THRESHOLD_GAP_MM"
 ENV_HOLES_THRESHOLD_AREA_MM = "MOVIX_QC_HOLES_THRESHOLD_AREA_MM"
 
 
@@ -30,6 +31,7 @@ class Config:
     retries: int
     user_agent: str
     occlusion_threshold_mm: float
+    occlusion_threshold_gap_mm: float
     holes_threshold_area_mm: float
 
 
@@ -86,6 +88,7 @@ def resolve_config(
     retries: int | None,
     user_agent: str | None,
     occlusion_threshold_mm: float | None,
+    occlusion_threshold_gap_mm: float | None,
     holes_threshold_area_mm: float | None,
 ) -> Config:
     """Resolve configuration from arguments and environment variables."""
@@ -105,12 +108,18 @@ def resolve_config(
         default=10,
     )
 
-    user_agent_value = user_agent or os.getenv(ENV_USER_AGENT) or "movix-qc-sdk/0.2.2"
+    user_agent_value = user_agent or os.getenv(ENV_USER_AGENT) or "movix-qc-sdk/0.3.0"
 
     occlusion_threshold_value = _parse_threshold(
         str(occlusion_threshold_mm) if occlusion_threshold_mm is not None else os.getenv(ENV_OCCLUSION_THRESHOLD_MM),
         default=0.0,
         name="Occlusion threshold"
+    )
+
+    occlusion_threshold_gap_value = _parse_threshold(
+        str(occlusion_threshold_gap_mm) if occlusion_threshold_gap_mm is not None else os.getenv(ENV_OCCLUSION_THRESHOLD_GAP_MM),
+        default=0.0,
+        name="Occlusion gap threshold"
     )
 
     holes_threshold_value = _parse_threshold(
@@ -127,5 +136,6 @@ def resolve_config(
         retries=retries_value,
         user_agent=user_agent_value,
         occlusion_threshold_mm=occlusion_threshold_value,
+        occlusion_threshold_gap_mm=occlusion_threshold_gap_value,
         holes_threshold_area_mm=holes_threshold_value,
     )

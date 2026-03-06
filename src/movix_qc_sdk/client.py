@@ -23,6 +23,7 @@ class Client:
         retries: int | None = None,
         user_agent: str | None = None,
         occlusion_threshold_mm: float | None = None,
+        occlusion_threshold_gap_mm: float | None = None,
         holes_threshold_area_mm: float | None = None,
         token_provider: TokenProvider | None = None,
     ) -> None:
@@ -34,6 +35,7 @@ class Client:
             retries,
             user_agent,
             occlusion_threshold_mm,
+            occlusion_threshold_gap_mm,
             holes_threshold_area_mm,
         )
         self._config = config

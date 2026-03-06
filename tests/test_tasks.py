@@ -373,6 +373,278 @@ def test_create_holes_rejects_negative_crown_dilation():
 
 
 @respx.mock
+def test_create_occlusion_with_gap_threshold(monkeypatch):
+    monkeypatch.setattr("movix_qc_sdk.transport.time.sleep", lambda *_: None)
+    now = 1_700_000_000
+    access = _make_jwt(now + 3600)
+    monkeypatch.setattr("movix_qc_sdk.auth.time.time", lambda: now)
+
+    respx.post("https://api.test/api/v1/auth/login/").mock(
+        return_value=httpx.Response(200, json={"access": access, "refresh": "r1"})
+    )
+
+    occlusion_route = respx.post("https://api.test/api/v1/services/cases/case-1/tasks/hyperocclusion").mock(
+        return_value=httpx.Response(
+            201,
+            json={"id": 12, "title": "Occlusion", "status": "created"},
+        )
+    )
+
+    client = Client(api_url="https://api.test", username="user", password="pass")
+    try:
+        client.tasks.create_occlusion("case-1", threshold_mm=0.5, threshold_gap_mm=0.15)
+
+        request = occlusion_route.calls.last.request
+        body = json.loads(request.content)
+        assert body["threshold_mm"] == 0.5
+        assert body["threshold_gap_mm"] == 0.15
+    finally:
+        client.close()
+
+
+@respx.mock
+def test_create_occlusion_uses_config_gap_threshold(monkeypatch):
+    monkeypatch.setattr("movix_qc_sdk.transport.time.sleep", lambda *_: None)
+    now = 1_700_000_000
+    access = _make_jwt(now + 3600)
+    monkeypatch.setattr("movix_qc_sdk.auth.time.time", lambda: now)
+
+    respx.post("https://api.test/api/v1/auth/login/").mock(
+        return_value=httpx.Response(200, json={"access": access, "refresh": "r1"})
+    )
+
+    occlusion_route = respx.post("https://api.test/api/v1/services/cases/case-1/tasks/hyperocclusion").mock(
+        return_value=httpx.Response(
+            201,
+            json={"id": 13, "title": "Occlusion", "status": "created"},
+        )
+    )
+
+    client = Client(
+        api_url="https://api.test",
+        username="user",
+        password="pass",
+        occlusion_threshold_gap_mm=0.2,
+    )
+    try:
+        client.tasks.create_occlusion("case-1")
+
+        request = occlusion_route.calls.last.request
+        body = json.loads(request.content)
+        assert body["threshold_gap_mm"] == 0.2
+    finally:
+        client.close()
+
+
+@respx.mock
+def test_create_occlusion_with_exclude_crowns(monkeypatch):
+    monkeypatch.setattr("movix_qc_sdk.transport.time.sleep", lambda *_: None)
+    now = 1_700_000_000
+    access = _make_jwt(now + 3600)
+    monkeypatch.setattr("movix_qc_sdk.auth.time.time", lambda: now)
+
+    respx.post("https://api.test/api/v1/auth/login/").mock(
+        return_value=httpx.Response(200, json={"access": access, "refresh": "r1"})
+    )
+
+    occlusion_route = respx.post("https://api.test/api/v1/services/cases/case-1/tasks/hyperocclusion").mock(
+        return_value=httpx.Response(
+            201,
+            json={"id": 14, "title": "Occlusion", "status": "created"},
+        )
+    )
+
+    client = Client(api_url="https://api.test", username="user", password="pass")
+    try:
+        client.tasks.create_occlusion("case-1", exclude_crowns=[18, 28, 38, 48])
+
+        request = occlusion_route.calls.last.request
+        body = json.loads(request.content)
+        assert body["exclude_crowns"] == [18, 28, 38, 48]
+    finally:
+        client.close()
+
+
+@respx.mock
+def test_create_occlusion_without_exclude_crowns(monkeypatch):
+    monkeypatch.setattr("movix_qc_sdk.transport.time.sleep", lambda *_: None)
+    now = 1_700_000_000
+    access = _make_jwt(now + 3600)
+    monkeypatch.setattr("movix_qc_sdk.auth.time.time", lambda: now)
+
+    respx.post("https://api.test/api/v1/auth/login/").mock(
+        return_value=httpx.Response(200, json={"access": access, "refresh": "r1"})
+    )
+
+    occlusion_route = respx.post("https://api.test/api/v1/services/cases/case-1/tasks/hyperocclusion").mock(
+        return_value=httpx.Response(
+            201,
+            json={"id": 15, "title": "Occlusion", "status": "created"},
+        )
+    )
+
+    client = Client(api_url="https://api.test", username="user", password="pass")
+    try:
+        client.tasks.create_occlusion("case-1")
+
+        request = occlusion_route.calls.last.request
+        body = json.loads(request.content)
+        assert "exclude_crowns" not in body
+    finally:
+        client.close()
+
+
+def test_create_occlusion_rejects_invalid_exclude_crowns():
+    client = Client(api_url="https://api.test", username="user", password="pass")
+    try:
+        with pytest.raises(ValidationError):
+            client.tasks.create_occlusion("case-1", exclude_crowns=["bad"])
+    finally:
+        client.close()
+
+
+@respx.mock
+def test_create_holes_with_exclude_crowns(monkeypatch):
+    monkeypatch.setattr("movix_qc_sdk.transport.time.sleep", lambda *_: None)
+    now = 1_700_000_000
+    access = _make_jwt(now + 3600)
+    monkeypatch.setattr("movix_qc_sdk.auth.time.time", lambda: now)
+
+    respx.post("https://api.test/api/v1/auth/login/").mock(
+        return_value=httpx.Response(200, json={"access": access, "refresh": "r1"})
+    )
+
+    holes_route = respx.post("https://api.test/api/v1/services/cases/case-1/tasks/holes").mock(
+        return_value=httpx.Response(
+            201,
+            json={"id": 24, "title": "Holes", "status": "created"},
+        )
+    )
+
+    client = Client(api_url="https://api.test", username="user", password="pass")
+    try:
+        client.tasks.create_holes("case-1", exclude_crowns=[18, 28, 38, 48])
+
+        request = holes_route.calls.last.request
+        body = json.loads(request.content)
+        assert body["exclude_crowns"] == [18, 28, 38, 48]
+    finally:
+        client.close()
+
+
+@respx.mock
+def test_create_holes_without_exclude_crowns(monkeypatch):
+    monkeypatch.setattr("movix_qc_sdk.transport.time.sleep", lambda *_: None)
+    now = 1_700_000_000
+    access = _make_jwt(now + 3600)
+    monkeypatch.setattr("movix_qc_sdk.auth.time.time", lambda: now)
+
+    respx.post("https://api.test/api/v1/auth/login/").mock(
+        return_value=httpx.Response(200, json={"access": access, "refresh": "r1"})
+    )
+
+    holes_route = respx.post("https://api.test/api/v1/services/cases/case-1/tasks/holes").mock(
+        return_value=httpx.Response(
+            201,
+            json={"id": 25, "title": "Holes", "status": "created"},
+        )
+    )
+
+    client = Client(api_url="https://api.test", username="user", password="pass")
+    try:
+        client.tasks.create_holes("case-1")
+
+        request = holes_route.calls.last.request
+        body = json.loads(request.content)
+        assert "exclude_crowns" not in body
+    finally:
+        client.close()
+
+
+def test_create_holes_rejects_invalid_exclude_crowns():
+    client = Client(api_url="https://api.test", username="user", password="pass")
+    try:
+        with pytest.raises(ValidationError):
+            client.tasks.create_holes("case-1", exclude_crowns="bad")
+    finally:
+        client.close()
+
+
+@respx.mock
+def test_create_scan_integrity(monkeypatch):
+    monkeypatch.setattr("movix_qc_sdk.transport.time.sleep", lambda *_: None)
+    now = 1_700_000_000
+    access = _make_jwt(now + 3600)
+    monkeypatch.setattr("movix_qc_sdk.auth.time.time", lambda: now)
+
+    respx.post("https://api.test/api/v1/auth/login/").mock(
+        return_value=httpx.Response(200, json={"access": access, "refresh": "r1"})
+    )
+
+    defects_route = respx.post("https://api.test/api/v1/services/cases/case-1/tasks/defects").mock(
+        return_value=httpx.Response(
+            201,
+            json={
+                "id": 40,
+                "title": "Scan Integrity",
+                "status": "created",
+                "created_at": "2024-01-01T00:00:00Z",
+            },
+        )
+    )
+
+    client = Client(api_url="https://api.test", username="user", password="pass")
+    try:
+        task = client.tasks.create_scan_integrity("case-1")
+        assert task.task_id == 40
+        assert task.status == TaskStatus.QUEUED
+
+        request = defects_route.calls.last.request
+        body = json.loads(request.content)
+        assert "exclude_crowns" not in body
+    finally:
+        client.close()
+
+
+@respx.mock
+def test_create_scan_integrity_with_exclude_crowns(monkeypatch):
+    monkeypatch.setattr("movix_qc_sdk.transport.time.sleep", lambda *_: None)
+    now = 1_700_000_000
+    access = _make_jwt(now + 3600)
+    monkeypatch.setattr("movix_qc_sdk.auth.time.time", lambda: now)
+
+    respx.post("https://api.test/api/v1/auth/login/").mock(
+        return_value=httpx.Response(200, json={"access": access, "refresh": "r1"})
+    )
+
+    defects_route = respx.post("https://api.test/api/v1/services/cases/case-1/tasks/defects").mock(
+        return_value=httpx.Response(
+            201,
+            json={"id": 41, "title": "Scan Integrity", "status": "created"},
+        )
+    )
+
+    client = Client(api_url="https://api.test", username="user", password="pass")
+    try:
+        client.tasks.create_scan_integrity("case-1", exclude_crowns=[18, 28, 38, 48])
+
+        request = defects_route.calls.last.request
+        body = json.loads(request.content)
+        assert body["exclude_crowns"] == [18, 28, 38, 48]
+    finally:
+        client.close()
+
+
+def test_create_scan_integrity_rejects_invalid_exclude_crowns():
+    client = Client(api_url="https://api.test", username="user", password="pass")
+    try:
+        with pytest.raises(ValidationError):
+            client.tasks.create_scan_integrity("case-1", exclude_crowns=[1.5])
+    finally:
+        client.close()
+
+
+@respx.mock
 def test_create_data_validation(monkeypatch):
     monkeypatch.setattr("movix_qc_sdk.transport.time.sleep", lambda *_: None)
     now = 1_700_000_000

@@ -4,7 +4,7 @@ Movix QC SDK - Complete Workflow Example
 This script demonstrates a full quality control workflow:
 1. Create a case with upper and lower STL files
 2. Run data validation and verify results
-3. Run occlusion and holes detection in parallel
+3. Run occlusion, holes detection, and scan integrity in parallel
 4. Generate summary and viewer link
 """
 
@@ -21,6 +21,7 @@ def main():
     # Initialize client with staging configuration
     # Thresholds default to 0.0 - set your own values based on requirements:
     # - MOVIX_QC_OCCLUSION_THRESHOLD_MM (default: 0.0mm)
+    # - MOVIX_QC_OCCLUSION_THRESHOLD_GAP_MM (default: 0.0mm)
     # - MOVIX_QC_HOLES_THRESHOLD_AREA_MM (default: 0.0mm²)
     with Client(
         api_url="https://api-staging.movixtech.com",
@@ -29,6 +30,7 @@ def main():
         timeout=30,
         user_agent="Movix/1.2 (+support@movixtech.com)",
         occlusion_threshold_mm=0.0,  # Set based on your requirements
+        occlusion_threshold_gap_mm=0.0,  # Gap threshold in mm
         holes_threshold_area_mm=0.0,  # Set based on your requirements
     ) as client:
         print("🚀 Starting Movix QC workflow...\n")
@@ -48,7 +50,7 @@ def main():
         try:
             # Step 1: Create case and upload files
             print("📦 Creating case...")
-            case = client.cases.create(note="SDK v0.2.2 example workflow")
+            case = client.cases.create(note="SDK v0.3.0 example workflow")
             case_id = case.case_id
             print(f"✅ Case created: {case_id}")
 
@@ -76,15 +78,30 @@ def main():
                             print(f"   - {key}: {val.get('message')}")
                 print()
 
-            # Step 3: Create occlusion and holes detection tasks
-            print("⚡ Creating occlusion and holes detection tasks...")
-            occlusion_task = client.tasks.create_occlusion(case_id)
+            # Step 3: Create occlusion, holes detection, and scan integrity tasks
+            # Optional: exclude wisdom teeth from analysis
+            exclude = [18, 28, 38, 48]
+
+            print("⚡ Creating analysis tasks...")
+            occlusion_task = client.tasks.create_occlusion(
+                case_id,
+                exclude_crowns=exclude,
+            )
             print(f"   Occlusion task: {occlusion_task.task_id}")
 
-            holes_task = client.tasks.create_holes(case_id)
+            holes_task = client.tasks.create_holes(
+                case_id,
+                exclude_crowns=exclude,
+            )
             print(f"   Holes task: {holes_task.task_id}")
 
-            # Step 4: Wait for both tasks to complete (in parallel using threads)
+            integrity_task = client.tasks.create_scan_integrity(
+                case_id,
+                exclude_crowns=exclude,
+            )
+            print(f"   Scan Integrity task: {integrity_task.task_id}")
+
+            # Step 4: Wait for all tasks to complete (in parallel using threads)
             print("⏳ Waiting for results...")
 
             def wait_occlusion():
@@ -93,11 +110,16 @@ def main():
             def wait_holes():
                 return client.tasks.wait_for_completion(case_id, holes_task.task_id)
 
-            with ThreadPoolExecutor(max_workers=2) as executor:
+            def wait_integrity():
+                return client.tasks.wait_for_completion(case_id, integrity_task.task_id)
+
+            with ThreadPoolExecutor(max_workers=3) as executor:
                 occlusion_future = executor.submit(wait_occlusion)
                 holes_future = executor.submit(wait_holes)
+                integrity_future = executor.submit(wait_integrity)
                 occlusion_result = occlusion_future.result()
                 holes_result = holes_future.result()
+                integrity_result = integrity_future.result()
 
             print("✅ Occlusion analysis complete")
             if occlusion_result.result:
@@ -115,7 +137,17 @@ def main():
                 upper_holes = holes_result.result.get('upper_arch_holes_count', 0)
                 lower_holes = holes_result.result.get('lower_arch_holes_count', 0)
                 total = upper_holes + lower_holes
-                print(f"   Total holes: {total} (upper: {upper_holes}, lower: {lower_holes})\n")
+                print(f"   Total holes: {total} (upper: {upper_holes}, lower: {lower_holes})")
+
+            print("✅ Scan Integrity analysis complete")
+            if integrity_result.result:
+                defects = integrity_result.result.get('defects', {})
+                for arch in ('upper', 'lower'):
+                    arch_defects = defects.get(arch, {})
+                    for defect_type, teeth in arch_defects.items():
+                        if teeth:
+                            print(f"   {arch.title()} {defect_type}: teeth {teeth}")
+            print()
 
             # Step 5: Generate summary and viewer link
             print("📊 Generating summary and viewer link...")
@@ -135,6 +167,7 @@ def main():
             print(f"Data Validation: {validation_status}")
             print("Occlusion: ✅ Analyzed")
             print("Holes: ✅ Analyzed")
+            print("Scan Integrity: ✅ Analyzed")
 
             if summary.message:
                 print("\n📋 Summary:")
@@ -168,6 +201,18 @@ def main():
                 print(f"   - Upper arch holes: {upper}")
                 print(f"   - Lower arch holes: {lower}")
                 print(f"   - Total holes: {upper + lower}")
+
+            # Scan Integrity results
+            if integrity_result.result:
+                print(f"\n   Scan Integrity (Task {integrity_result.task_id}):")
+                result = integrity_result.result
+                print(f"   - Status: {result.get('status')}")
+                defects = result.get('defects', {})
+                for arch in ('upper', 'lower'):
+                    arch_defects = defects.get(arch, {})
+                    for defect_type, teeth in arch_defects.items():
+                        if teeth:
+                            print(f"   - {arch.title()} {defect_type}: {teeth}")
 
             print("="*60 + "\n")
 
