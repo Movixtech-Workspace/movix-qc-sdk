@@ -122,7 +122,10 @@ class TasksClient:
             _validate_exclude_crowns(exclude_crowns)
 
         threshold_value = threshold_mm if threshold_mm is not None else self._config.occlusion_threshold_mm
-        threshold_gap_value = threshold_gap_mm if threshold_gap_mm is not None else self._config.occlusion_threshold_gap_mm
+        threshold_gap_value = (
+            threshold_gap_mm if threshold_gap_mm is not None
+            else self._config.occlusion_threshold_gap_mm
+        )
 
         payload: dict[str, object] = {
             "threshold_mm": threshold_value,

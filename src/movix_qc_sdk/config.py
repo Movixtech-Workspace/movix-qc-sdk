@@ -108,7 +108,7 @@ def resolve_config(
         default=10,
     )
 
-    user_agent_value = user_agent or os.getenv(ENV_USER_AGENT) or "movix-qc-sdk/0.3.0"
+    user_agent_value = user_agent or os.getenv(ENV_USER_AGENT) or "movix-qc-sdk/0.3.1"
 
     occlusion_threshold_value = _parse_threshold(
         str(occlusion_threshold_mm) if occlusion_threshold_mm is not None else os.getenv(ENV_OCCLUSION_THRESHOLD_MM),
@@ -116,8 +116,10 @@ def resolve_config(
         name="Occlusion threshold"
     )
 
+    gap_env = os.getenv(ENV_OCCLUSION_THRESHOLD_GAP_MM)
+    gap_raw = str(occlusion_threshold_gap_mm) if occlusion_threshold_gap_mm is not None else gap_env
     occlusion_threshold_gap_value = _parse_threshold(
-        str(occlusion_threshold_gap_mm) if occlusion_threshold_gap_mm is not None else os.getenv(ENV_OCCLUSION_THRESHOLD_GAP_MM),
+        gap_raw,
         default=0.0,
         name="Occlusion gap threshold"
     )
