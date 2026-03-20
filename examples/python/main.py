@@ -44,7 +44,7 @@ def main():
             print("❌ Error: STL files not found!")
             print(f"   Expected: {upper_stl}")
             print(f"   Expected: {lower_stl}")
-            print("\n   Please add your upper.stl and lower.stl files to the examples/ directory.")
+            print("\n   Please add your upper.stl and lower.stl files to the examples/python/ directory.")
             sys.exit(1)
 
         try:

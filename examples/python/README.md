@@ -138,7 +138,7 @@ Scan Integrity: ✅ Analyzed
 ## Troubleshooting
 
 ### STL files not found
-Make sure `upper.stl` and `lower.stl` are in the examples/ directory.
+Make sure `upper.stl` and `lower.stl` are in the `examples/python/` directory.
 
 ### Authentication failed
 Verify your username and password are correct and configured for the staging environment.
@@ -151,4 +151,4 @@ Check the `base_url` and ensure the staging API is accessible.
 - Modify the script to process multiple cases
 - Add error handling for specific scenarios
 - Integrate into your production pipeline
-- Explore other SDK features in the [main documentation](../README.md)
+- Explore other SDK features in the [main documentation](../../README.md)

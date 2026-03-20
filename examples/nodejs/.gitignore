@@ -1,0 +1,9 @@
+node_modules/
+
+# STL files (user-provided)
+*.stl
+*.STL
+
+# OS
+.DS_Store
+Thumbs.db
